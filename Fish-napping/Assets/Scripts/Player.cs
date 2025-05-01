@@ -1,24 +1,44 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using System;
 
 public class Player : MonoBehaviour
 {
-    private SpriteRenderer spriteRenderer;
+    // private SpriteRenderer spriteRenderer;
     private Rigidbody2D playerRigidBody;
     private float healthPoints;
-    public bool isGrounded;
+
+    public int maxJumps;
+    private int jumpsRemaining;
+
+
+    private float horizontalMovement;
     private bool facingRight;
+
+    public Transform groundCheck;
+    public LayerMask groundLayer;
+
+    public Vector2 groundCheckSize = new Vector2(0.5f, 0.5f);
+
+
     // private int spriteIndex;
     // public Sprite[] idleSprites;
     public Animator animator;
 
     private void Awake() {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        // spriteRenderer = GetComponent<SpriteRenderer>();
         playerRigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         healthPoints = 100f;
-        isGrounded = false;
         facingRight = true;
+        horizontalMovement = 0f;
+        maxJumps = 2;
     }
+
+    public void Move(InputAction.CallbackContext context) {
+        horizontalMovement = context.ReadValue<Vector2>().x;
+    }
+
     // Start is called before the first frame update
     // void Start()
     // {
@@ -33,32 +53,56 @@ public class Player : MonoBehaviour
     //     spriteRenderer.sprite = idleSprites[spriteIndex];
     // }
 
+    public void Jump(InputAction.CallbackContext context) {
+        if (jumpsRemaining > 0) {
+            if (context.performed) {
+                playerRigidBody.velocity = new Vector2(playerRigidBody.velocity.x, 30f);
+                animator.SetTrigger("Jump");
+                jumpsRemaining--;
+            } 
+            // else if (context.canceled) {
+            //     playerRigidBody.velocity = new Vector2(playerRigidBody.velocity.x, 20f);
+            //     animator.SetTrigger("Jump");
+            //     jumpsRemaining--;
+            // }
+        }
+    }
+
     // Update is called once per frame
+    private void Update() {
+        playerRigidBody.velocity = new Vector2(horizontalMovement * 5f, playerRigidBody.velocity.y);
+        GroundChecker();
+        animator.SetFloat("yVelocity", playerRigidBody.velocity.y);
+        animator.SetFloat("xVelocity", playerRigidBody.velocity.magnitude);
+    }
     private void FixedUpdate()
     {
-        if (Input.GetKey(KeyCode.A)) {
-            playerRigidBody.velocity = new Vector2(-5, playerRigidBody.velocity.y);
-            if (facingRight) {
-                transform.localScale = new Vector3(-2f, 2f, 1f);
-                facingRight = false;
-            }
+        if (horizontalMovement < 0 && facingRight) {
+            transform.localScale = new Vector3(-2f, 2f, 1f);
+            facingRight = false;
         }
-        if (Input.GetKey(KeyCode.D)) {
-            playerRigidBody.velocity = new Vector2(5, playerRigidBody.velocity.y);
-            if (!facingRight) {
-                transform.localScale = new Vector3(2f, 2f, 1f);
-                facingRight = true;
-            }
-        }
-        if (Input.GetKey(KeyCode.W) && isGrounded) {
-            playerRigidBody.AddForce(Vector2.up * 20f, ForceMode2D.Impulse);
-            isGrounded = false;
-            animator.SetBool("isJumping", !isGrounded);
+        if (horizontalMovement > 0 && !facingRight) {
+            transform.localScale = new Vector3(2f, 2f, 1f);
+            facingRight = true;
         }
         // if collision, update health points --> sprite change automatic, so just handle logic for death and respawn if occursunity    
     }
 
-    private void OnCollisionEnter2D(Collision2D collision) {
-        isGrounded = true;
+private void GroundChecker() {
+    if (Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0, groundLayer)) {
+        jumpsRemaining = maxJumps;
     }
+}
+
+    private void OnDrawGizmosSelected() {
+        Gizmos.color = Color.white;
+        Gizmos.DrawWireCube(groundCheck.position, groundCheckSize);
+    }
+    // private void OnCollisionEnter2D(Collision2D collision) {
+    //     // Only set grounded when touching the ground
+    //     if (collision.collider.CompareTag("Ground")) {
+    //         isGrounded = true;
+    //         animator.SetBool("isJumping", false);  // Stop jump animation on landing
+    //     }
+    // }
 }
