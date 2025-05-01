@@ -1,38 +1,44 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
+using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
     // private SpriteRenderer spriteRenderer;
+    [Header("Player")]
     private Rigidbody2D playerRigidBody;
-    private float healthPoints;
+    private float baseHealth;
+    public float healthMultiplier;
+    public Animator animator;
 
+    [Header("Movement")]
     public int maxJumps;
     private int jumpsRemaining;
-
-
+    public float moveSpeedMultiplier;
     private float horizontalMovement;
     private bool facingRight;
 
+    [Header("GroundCheck")]
     public Transform groundCheck;
     public LayerMask groundLayer;
-
     public Vector2 groundCheckSize = new Vector2(0.5f, 0.5f);
 
+    [Header("Interactions")]
+    private bool atDoor;
 
     // private int spriteIndex;
     // public Sprite[] idleSprites;
-    public Animator animator;
 
     private void Awake() {
         // spriteRenderer = GetComponent<SpriteRenderer>();
         playerRigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        healthPoints = 100f;
+        baseHealth = 100f;
         facingRight = true;
         horizontalMovement = 0f;
         maxJumps = 2;
+        atDoor = false;
     }
 
     public void Move(InputAction.CallbackContext context) {
@@ -56,15 +62,24 @@ public class Player : MonoBehaviour
     public void Jump(InputAction.CallbackContext context) {
         if (jumpsRemaining > 0) {
             if (context.performed) {
-                playerRigidBody.velocity = new Vector2(playerRigidBody.velocity.x, 30f);
+                playerRigidBody.velocity = new Vector2(playerRigidBody.velocity.x, 15f);
                 animator.SetTrigger("Jump");
                 jumpsRemaining--;
             } 
-            // else if (context.canceled) {
-            //     playerRigidBody.velocity = new Vector2(playerRigidBody.velocity.x, 20f);
-            //     animator.SetTrigger("Jump");
-            //     jumpsRemaining--;
-            // }
+            else if (context.canceled) {
+                playerRigidBody.velocity = new Vector2(playerRigidBody.velocity.x, 8f);
+                animator.SetTrigger("Jump");
+                jumpsRemaining--;
+            }
+        }
+    }
+
+    public void Interactions(InputAction.CallbackContext context) {
+        if (atDoor) {
+            if (context.performed) {
+                // change to new scene.
+                FindObjectOfType<GameManager>().EnterShop();
+            }
         }
     }
 
@@ -74,6 +89,7 @@ public class Player : MonoBehaviour
         GroundChecker();
         animator.SetFloat("yVelocity", playerRigidBody.velocity.y);
         animator.SetFloat("xVelocity", playerRigidBody.velocity.magnitude);
+
     }
     private void FixedUpdate()
     {
@@ -88,21 +104,24 @@ public class Player : MonoBehaviour
         // if collision, update health points --> sprite change automatic, so just handle logic for death and respawn if occursunity    
     }
 
-private void GroundChecker() {
-    if (Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0, groundLayer)) {
-        jumpsRemaining = maxJumps;
+    private void GroundChecker() {
+        if (Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0, groundLayer)) {
+            jumpsRemaining = maxJumps;
+        }
     }
-}
 
-    private void OnDrawGizmosSelected() {
-        Gizmos.color = Color.white;
-        Gizmos.DrawWireCube(groundCheck.position, groundCheckSize);
+    
+    private void OnTriggerEnter2D(Collider2D collider) {
+        // Only set grounded when touching the ground
+        if (collider.gameObject.tag == "Door") {
+            atDoor = true;
+        }
     }
-    // private void OnCollisionEnter2D(Collision2D collision) {
-    //     // Only set grounded when touching the ground
-    //     if (collision.collider.CompareTag("Ground")) {
-    //         isGrounded = true;
-    //         animator.SetBool("isJumping", false);  // Stop jump animation on landing
-    //     }
-    // }
+
+    private void OnTriggerExit2D(Collider2D collider) {
+        // Only set grounded when touching the ground
+        if (collider.gameObject.tag == "Door") {
+            atDoor = false;
+        }
+    }
 }
