@@ -1,7 +1,7 @@
 # Fish-napping
 An side-scroller where you capture fish and bring them home.
 
-Assets used:
+Assets used:  
 [Background textures](https://anokolisa.itch.io/basic-140-tiles-grassland-and-mines)  
 [Player model](https://aamatniekss.itch.io/fantasy-knight-free-pixelart-animated-character)  
 
